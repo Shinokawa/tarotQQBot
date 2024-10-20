@@ -4,6 +4,15 @@ import json
 import random
 from datetime import datetime
 import os
+import logging
+
+# 设置日志记录器
+logging.basicConfig(
+    filename="qq_message_log.txt",  # 日志文件名
+    level=logging.INFO,  # 日志等级
+    format="%(asctime)s - %(message)s",  # 日志格式
+    datefmt="%Y-%m-%d %H:%M:%S"  # 时间格式
+)
 
 # 运势列表
 fortunes = ["大吉", "吉", "中吉", "小吉", "末吉", "凶", "大凶"]
@@ -34,8 +43,19 @@ def get_fortune():
 def get_today():
     return datetime.now().strftime("%Y-%m-%d")
 
+# 记录每条接收到的 QQ 消息
+def log_message(message):
+    if 'sender' in message and 'message' in message:
+        user_id = message['sender']['user_id']
+        group_id = message.get('group_id', '未知群号')
+        msg_content = message['message']
+        logging.info(f"QQ号: {user_id} 群号: {group_id} 消息: {msg_content}")
+
 # 处理接收到的消息
 async def handle_message(websocket, message):
+    # 记录消息日志
+    log_message(message)
+
     # 判断消息是否以 "/运势" 开头
     if 'message' in message and message['message'].startswith("/运势"):
         # 获取发送消息的人的信息
@@ -51,7 +71,7 @@ async def handle_message(websocket, message):
             user_fortune, date = user_fortunes[user_id]
             # 如果是今天的运势，直接返回之前的结果
             if date == today:
-                response_message = f"{sender_name} 今日的运势已经生成: {user_fortune}"
+                response_message = f"{sender_name} 今日的运势是: {user_fortune}"
             else:
                 # 如果是旧日期，重新生成运势并更新
                 new_fortune = get_fortune()
