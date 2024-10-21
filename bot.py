@@ -110,7 +110,7 @@ async def handle_message(websocket, message):
         print(f"已发送运势给: {sender_name}, 运势为: {user_fortunes[user_id][0]}")
 
     # 处理 "/tarot" 消息时的逻辑
-    elif 'message' in message and message['message'].startswith("/tarot"):
+    elif 'message' in message and any(message['message'].startswith(trigger) for trigger in ("/tarot", "塔罗牌", "/chou")):
         sender = message['sender']
         group_id = message['group_id']
         sender_name = sender.get('nickname', '未知用户')
