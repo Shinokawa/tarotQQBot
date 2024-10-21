@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 import os
 import logging
-from tarot import load_tarot_data, draw_random_tarot, format_tarot_message
+from tarot import load_tarot_data, draw_random_tarot, format_tarot_message_with_image
 
 # 设置日志记录器
 logging.basicConfig(
@@ -17,7 +17,13 @@ logging.basicConfig(
 
 # 读取塔罗牌数据
 tarot_file = "TarotData.yml"
-image_base_path = "TarotImages"  # 这里是存放塔罗牌图片的文件夹
+image_base_path = "TarotImages"  # 你的塔罗牌图片存放的目录
+output_base_path = "output"  # 生成的合成图片存放的目录
+
+# 确保 output_base_path 目录存在
+if not os.path.exists(output_base_path):
+    os.makedirs(output_base_path)
+
 tarot_data = load_tarot_data(tarot_file)
 
 # 运势列表
@@ -103,7 +109,7 @@ async def handle_message(websocket, message):
         await websocket.send(json.dumps(response))
         print(f"已发送运势给: {sender_name}, 运势为: {user_fortunes[user_id][0]}")
 
-    # 判断消息是否以 "/tarot" 开头
+    # 处理 "/tarot" 消息时的逻辑
     elif 'message' in message and message['message'].startswith("/tarot"):
         sender = message['sender']
         group_id = message['group_id']
@@ -111,20 +117,13 @@ async def handle_message(websocket, message):
 
         # 抽取塔罗牌
         tarot_card = draw_random_tarot(tarot_data)
-        response_message, image_path = format_tarot_message(tarot_card, image_base_path)
-        print(image_path)
-        absolute_image_path = os.path.abspath(image_path).replace("\\", "/")
-        print(f"绝对图片路径: {absolute_image_path}")
-        print(f"图片是否存在: {os.path.exists(image_path)}")
+        combined_image_path = format_tarot_message_with_image(tarot_card, image_base_path, output_base_path)
 
-        if image_path and os.path.exists(image_path):
-            # 准备包含图片和文字的消息
-            response_message_with_image = f"{response_message}[CQ:image,file=file:///{absolute_image_path}]"
+        if combined_image_path and os.path.exists(combined_image_path):
+            # 准备包含图片的消息，转换路径为绝对路径
+            response_message_with_image = f"[CQ:image,file=file:///{combined_image_path}]"
         else:
-            response_message_with_image = response_message
-
-        # 调试打印：输出要发送的消息
-        print(f"发送消息内容: {response_message_with_image}")
+            response_message_with_image = "生成塔罗牌图片失败。"
 
         # 准备并发送回复
         response = {
@@ -134,13 +133,10 @@ async def handle_message(websocket, message):
                 "message": response_message_with_image
             }
         }
-        print(f"发送的 response 对象: {json.dumps(response, ensure_ascii=False, indent=4)}")
 
-        try:
-            await websocket.send(json.dumps(response))
-            print(f"已发送塔罗牌和图片给: {sender_name}")
-        except Exception as e:
-            print(f"发送消息时出错: {e}")
+        await websocket.send(json.dumps(response))
+        print(f"已发送塔罗牌图片给: {sender_name}")
+
 
 # WebSocket 服务器，等待反向连接
 async def websocket_server(websocket, path):
