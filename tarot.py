@@ -119,4 +119,4 @@ def format_tarot_message_with_image(tarot_card, image_base_path, output_base_pat
         return absolute_combined_image_path
 
     return None
-#234
+#234刻录机、
